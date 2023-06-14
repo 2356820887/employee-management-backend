@@ -1,12 +1,11 @@
 <template>
   <div>
-    <el-form ref="form" :model="form" label-width="120px">
+    <el-form :model="form" label-width="120px">
       <el-form-item label="Upload Image">
         <el-upload
           class="avatar-uploader"
           action="http://127.0.0.1:5000/employee/upload-image"
           :show-file-list="false"
-          :headers="{ 'X-CSRFToken': csrfToken }"
           :on-success="handleSuccess"
         >
           <img v-if="imageUrl" :src="imageUrl" class="avatar" />
@@ -24,7 +23,6 @@ export default {
       form: {
         imageUrl: "",
       },
-      csrfToken: "{{ csrf_token() }}",
       imageUrl: "",
     };
   },

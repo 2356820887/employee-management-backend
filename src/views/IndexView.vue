@@ -159,9 +159,6 @@
                         </el-form-item>
                       </el-form>
                       <div slot="footer" class="dialog-footer">
-                        <!-- <el-button @click="hideialogDepartment(scope.row)"
-                          >取 消</el-button
-                        > -->
                         <el-button
                           type="primary"
                           @click="updateDepartment(scope.row)"
@@ -358,21 +355,34 @@
               <el-table-column prop="password" label="密码"></el-table-column> -->
               <el-table-column prop="name" label="姓名"></el-table-column>
               <el-table-column prop="gender" label="性别"></el-table-column>
-              <el-table-column
-                prop="department_id"
-                label="部门编号"
-              ></el-table-column>
-              <el-table-column
-                prop="position_id"
-                label="职位编号"
-              ></el-table-column>
+              <el-table-column label="部门名称">
+                <template slot-scope="scope">
+                  <span>{{
+                    departmentData.find(
+                      (dept) => dept.id === scope.row.department_id
+                    ).name
+                  }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="职位名称">
+                <template slot-scope="scope">
+                  <span>{{
+                    positionData.find((pos) => pos.id === scope.row.position_id)
+                      .name
+                  }}</span>
+                </template>
+              </el-table-column>
               <el-table-column
                 prop="contact_number"
                 label="联系电话"
               ></el-table-column>
               <el-table-column prop="photo" label="员工照片">
                 <template slot-scope="scope">
-                  <img :src="scope.row.photo" alt="employee-image" />
+                  <img
+                    :src="scope.row.photo"
+                    alt="employee-image"
+                    style="width: 100px; height: 100px"
+                  />
                 </template>
               </el-table-column>
               <el-table-column fixed="right" label="操作" width="180">
@@ -389,7 +399,7 @@
                       title="员工信息"
                       :visible.sync="scope.row.isDialogVisible"
                       :append-to-body="true"
-                      ><el-form>
+                      ><el-form :model="employeeForm">
                         <el-form-item label="姓名">
                           <el-input
                             v-model="employeeForm.name"
@@ -397,36 +407,79 @@
                           ></el-input>
                         </el-form-item>
                         <el-form-item label="性别">
-                          <el-input
-                            v-model="employeeForm.name"
-                            autocomplete="off"
-                          ></el-input>
+                          <el-select
+                            v-model="employeeForm.gender"
+                            placeholder="请选择"
+                            size="medium"
+                          >
+                            <el-option label="男" value="男"></el-option>
+                            <el-option label="女" value="女"></el-option>
+                            <el-option label="保密" value="保密"></el-option>
+                          </el-select>
                         </el-form-item>
                         <el-form-item label="所属部门">
-                          <el-input
-                            v-model="employeeForm.name"
-                            autocomplete="off"
-                          ></el-input>
+                          <el-select
+                            v-model="employeeForm.department_id"
+                            placeholder="部门名称"
+                          >
+                            <el-option
+                              v-for="option in departmentData"
+                              :key="option.value"
+                              :label="option.name"
+                              :value="option.id"
+                            ></el-option>
+                          </el-select>
                         </el-form-item>
                         <el-form-item label="职位">
-                          <el-input
-                            v-model="employeeForm.name"
-                            autocomplete="off"
-                          ></el-input>
+                          <el-select
+                            v-model="employeeForm.position_id"
+                            placeholder="职位名称"
+                          >
+                            <el-option
+                              v-for="option in positionData"
+                              :key="option.value"
+                              :label="option.name"
+                              :value="option.id"
+                            ></el-option>
+                          </el-select>
                         </el-form-item>
                         <el-form-item label="联系电话">
                           <el-input
-                            v-model="employeeForm.name"
+                            v-model="employeeForm.contact_number"
                             autocomplete="off"
                           ></el-input>
                         </el-form-item>
                         <el-form-item label="员工照片">
-                          <el-input
-                            v-model="employeeForm.name"
-                            autocomplete="off"
-                          ></el-input>
-                        </el-form-item> </el-form
-                    ></el-dialog>
+                          <el-upload
+                            class="avatar-uploader"
+                            action="http://127.0.0.1:5000/employee/upload-image"
+                            :show-file-list="false"
+                            :on-success="
+                              (file) => handleSuccess(file, scope.$index)
+                            "
+                          >
+                            <!-- :on-success="handleSuccess" -->
+                            <img
+                              v-if="employeeForm.photo"
+                              :src="employeeForm.photo"
+                              class="avatar"
+                              style="width: 100px; height: 100px"
+                            />
+                            <i
+                              v-else
+                              class="el-icon-plus avatar-uploader-icon"
+                            ></i>
+                          </el-upload>
+                        </el-form-item>
+                      </el-form>
+                      <div slot="footer" class="dialog-footer">
+                        <el-button
+                          type="primary"
+                          @click="updateEmployee(scope.row)"
+                          >确 定</el-button
+                        >
+                      </div></el-dialog
+                    >
                     <el-button size="mini" type="danger">删除</el-button>
                   </div>
                 </template>
@@ -697,6 +750,7 @@ export default {
   data() {
     return {
       form: "",
+      imageUrl: "",
       isDialogVisible: false,
       dialogFormVisible: false,
       user: "",
@@ -755,7 +809,6 @@ export default {
       this.axios
         .get("http://127.0.0.1:5000/employee/find-all")
         .then((response) => {
-          console.log(response);
           this.employeeData = response.data.data;
         })
         .catch((e) => {
@@ -1001,13 +1054,57 @@ export default {
       }
       row.deletePositionDialog = true;
     },
+    openEmployeeDialog(row) {
+      console.log(row);
+      if (row.isDialogVisible === undefined) {
+        this.$set(row, "isDialogVisible", false);
+      }
+      this.employeeForm = row;
+      row.isDialogVisible = true;
+    },
+    updateEmployee(row) {
+      this.employeeForm.id = row.id;
+      this.axios
+        .post("http://127.0.0.1:5000/employee/update-one", this.employeeForm)
+        .then((response) => {
+          if (response.data.code == 200) {
+            this.findAllEmployee();
+            this.$message.success("修改成功");
+            this.employeeForm = {};
+          } else {
+            this.$message.error(response.data.msg);
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+          this.$message.error("修改失败，请联系管理员");
+        });
+      row.isDialogVisible = false;
+    },
+    handleSuccess(response, index) {
+      console.log(response);
+      console.log(index);
+      this.employeeForm.photo = response.filename;
+      this.getImageUrl(response.filename, index);
+    },
+    getImageUrl(filename, index) {
+      this.axios
+        .get(`http://127.0.0.1:5000/employee/get-image/${filename}`)
+        .then((response) => {
+          console.log(response.config);
+          this.employeeData[index].photo = response.config.url;
+          console.log(this.employeeData);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
   },
   created() {
     this.findAllEmployee();
     this.findAlldepartment();
     this.findAllPosition();
     this.user = this.$route.query.user;
-    console.log(this.user);
   },
 };
 </script>
