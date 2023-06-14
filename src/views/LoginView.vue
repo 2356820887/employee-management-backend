@@ -165,16 +165,14 @@ export default {
         });
     },
     register() {
+      console.log(this.employeeForm);
       // 使用 axios 库发送 POST 请求，将员工信息通过请求体发送到后端接口
       this.axios
         .post("http://127.0.0.1:5000/employee/add-one", this.employeeForm)
         .then((response) => {
           // 成功添加员工，返回数据为 {"status": true}
           if (response.data.code == 200) {
-            this.$message({
-              message: "注册成功",
-              type: "success",
-            });
+            this.$message.success("注册成功");
             // 清空表单数据，防止重复提交
             this.form.username = this.employeeForm.username;
             this.employeeForm = {};

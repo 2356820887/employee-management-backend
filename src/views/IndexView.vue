@@ -41,22 +41,6 @@
               >
             </el-menu-item-group>
           </el-submenu>
-          <!-- <el-submenu index="3">
-            <template slot="title"
-              ><i class="el-icon-s-data"></i>数据统计</template
-            >
-            <el-menu-item-group>
-              <template slot="title">部门员工统计</template>
-              <el-menu-item
-                index="3-1"
-                @click="currentTab = 'departmentEmployee'"
-                >员工统计</el-menu-item
-              >
-              <el-menu-item index="3-2" @click="currentTab = 'position'"
-                >职位统计</el-menu-item
-              >
-            </el-menu-item-group>
-          </el-submenu> -->
           <el-menu-item
             index="4"
             @click="currentTab = 'help'"
@@ -179,10 +163,6 @@
                     >
                       <span>确定删除吗？</span>
                       <span slot="footer" class="dialog-footer">
-                        <!-- <el-button
-                          @click="hideDeleteDepartmentDialog(scope.row)"
-                          >取 消</el-button
-                        > -->
                         <el-button
                           type="primary"
                           @click="deleteDepartment(scope.row)"
@@ -268,6 +248,28 @@
                       :value="option.id"
                     ></el-option>
                   </el-select>
+                </el-form-item>
+                <el-form-item label="员工照片">
+                  <el-upload
+                    class="avatar-uploader"
+                    action="http://127.0.0.1:5000/employee/upload-image"
+                    :show-file-list="false"
+                    :on-success="(file) => handleSuccess(file, -1)"
+                  >
+                    <!-- :on-success="handleSuccess" -->
+                    <img
+                      v-if="employeeForm.photo"
+                      :src="employeeForm.photo"
+                      class="avatar"
+                      style="width: 100px; height: 100px"
+                    />
+                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                  </el-upload>
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" @click="addEmployee"
+                    >添加</el-button
+                  >
                 </el-form-item>
               </el-form>
             </div>
@@ -480,7 +482,26 @@
                         >
                       </div></el-dialog
                     >
-                    <el-button size="mini" type="danger">删除</el-button>
+                    <el-button
+                      size="mini"
+                      type="danger"
+                      @click="openDeleteEmployeeDialog(scope.row)"
+                      >删除</el-button
+                    >
+                    <el-dialog
+                      title="提示"
+                      :visible.sync="scope.row.DeleteEmployeeDialog"
+                      :append-to-body="true"
+                    >
+                      <span>确定删除吗？</span>
+                      <span slot="footer" class="dialog-footer">
+                        <el-button
+                          type="primary"
+                          @click="deleteEmployee(scope.row)"
+                          >确 定</el-button
+                        >
+                      </span>
+                    </el-dialog>
                   </div>
                 </template>
               </el-table-column>
@@ -612,17 +633,17 @@
                   width="450px"
                   top="15vh"
                 >
-                  <el-form :model="employeeForm" label-width="120px">
+                  <el-form :model="userFrom" label-width="120px">
                     <el-form-item label="姓名">
                       <el-input
-                        v-model="employeeForm.name"
+                        v-model="userFrom.name"
                         autocomplete="off"
                         size="medium"
                       ></el-input>
                     </el-form-item>
                     <el-form-item label="用户名">
                       <el-input
-                        v-model="employeeForm.username"
+                        v-model="userFrom.username"
                         autocomplete="off"
                         size="medium"
                       ></el-input>
@@ -630,24 +651,20 @@
                     <el-form-item label="密码">
                       <el-input
                         type="password"
-                        v-model="employeeForm.password"
+                        v-model="userFrom.password"
                         autocomplete="off"
                         size="medium"
                       ></el-input>
                     </el-form-item>
                     <el-form-item label="手机号">
                       <el-input
-                        v-model="employeeForm.contact_number"
+                        v-model="userFrom.contact_number"
                         autocomplete="off"
                         size="medium"
                       ></el-input>
                     </el-form-item>
                     <el-form-item label="性别">
-                      <el-select
-                        v-model="employeeForm.gender"
-                        placeholder="请选择"
-                        size="medium"
-                      >
+                      <el-select v-model="userFrom.gender" placeholder="请选择">
                         <el-option label="男" value="男"></el-option>
                         <el-option label="女" value="女"></el-option>
                         <el-option label="保密" value="保密"></el-option>
@@ -655,13 +672,12 @@
                     </el-form-item>
                     <el-form-item label="所属部门">
                       <el-select
-                        v-model="employeeForm.department_id"
+                        v-model="userFrom.department_id"
                         placeholder="请选择"
-                        size="medium"
                       >
                         <el-option
                           v-for="option in departmentData"
-                          :key="option.id"
+                          :key="option.value"
                           :label="option.name"
                           :value="option.id"
                         ></el-option>
@@ -669,17 +685,33 @@
                     </el-form-item>
                     <el-form-item label="职位">
                       <el-select
-                        v-model="employeeForm.position_id"
+                        v-model="userFrom.position_id"
                         placeholder="请选择"
-                        size="medium"
                       >
                         <el-option
                           v-for="option in positionData"
-                          :key="option.id"
+                          :key="option.value"
                           :label="option.name"
                           :value="option.id"
                         ></el-option>
                       </el-select>
+                    </el-form-item>
+                    <el-form-item label="照片">
+                      <el-upload
+                        class="avatar-uploader"
+                        action="http://127.0.0.1:5000/employee/upload-image"
+                        :show-file-list="false"
+                        :on-success="(file) => handleSuccess(file, -1)"
+                      >
+                        <!-- :on-success="handleSuccess" -->
+                        <img
+                          v-if="user.photo"
+                          :src="user.photo"
+                          class="avatar"
+                          style="width: 100px; height: 100px"
+                        />
+                        <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                      </el-upload>
                     </el-form-item>
                   </el-form>
                   <div slot="footer" class="dialog-footer">
@@ -737,6 +769,13 @@
                 </template>
                 {{ user.role_name }}
               </el-descriptions-item>
+              <el-descriptions-item>
+                <template slot="label">
+                  <i class="el-icon-picture-outline"></i>
+                  头像
+                </template>
+                <img v-if="user.photo" :src="user.photo" class="avatar" />
+              </el-descriptions-item>
             </el-descriptions>
           </div>
         </el-main>
@@ -749,11 +788,24 @@
 export default {
   data() {
     return {
+      userid: "",
+      user: {},
+      userFrom: {
+        id: "",
+        username: "",
+        password: "",
+        name: "",
+        gender: "",
+        department_id: "",
+        position_id: "",
+        contact_number: "",
+        role_id: "",
+        photo: "",
+      },
       form: "",
       imageUrl: "",
       isDialogVisible: false,
       dialogFormVisible: false,
-      user: "",
       currentTab: "home",
       employeeData: [], // 员工数据
       departmentData: [], // 部门数据
@@ -795,9 +847,12 @@ export default {
     };
   },
   methods: {
+    // 页面跳转
     userCommand(command) {
       if (command == "info") {
         console.log("个人中心");
+        console.log(this.user);
+        this.findById();
         this.currentTab = "user";
       } else if (command == "quit") {
         console.log("退出");
@@ -805,6 +860,7 @@ export default {
         this.$router.push({ path: "/" });
       }
     },
+    // 查询所有员工
     findAllEmployee() {
       this.axios
         .get("http://127.0.0.1:5000/employee/find-all")
@@ -814,6 +870,59 @@ export default {
         .catch((e) => {
           console.log(e);
         });
+    },
+    findById() {
+      this.axios
+        .get("http://127.0.0.1:5000/employee/find-id?id=" + this.user.id)
+        .then((response) => {
+          console.log(response);
+          this.user = response.data.data[0];
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
+    // 查询所有部门
+    findAlldepartment() {
+      this.axios
+        .get("http://127.0.0.1:5000/department/find-all")
+        .then((response) => {
+          this.departmentData = response.data.data;
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+    },
+    // 查询所有职业
+    findAllPosition() {
+      this.axios
+        .get("http://127.0.0.1:5000/position/find-all")
+        .then((response) => {
+          this.positionData = response.data.data;
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+    },
+    // 查询员工
+    queryEmployee() {
+      this.axios
+        .post("http://127.0.0.1:5000/employee/find-name", this.queryFrom)
+        .then((response) => {
+          if (response.data.code == 200) {
+            this.queryBack = response.data.data;
+          } else {
+            alert(response.data.msg);
+          }
+        });
+    },
+    // 重置查询
+    resetQuery() {
+      this.queryFrom = {
+        employee_name: null,
+        department_id: null,
+        position_id: null,
+      };
     },
     // 添加员工信息
     addEmployee() {
@@ -829,6 +938,8 @@ export default {
             });
             // 清空表单数据，防止重复提交
             this.employeeForm = {};
+            this.findAllEmployee();
+            this.currentTab = "departmentEmployee";
           }
           // 员工信息未添加成功，返回数据为 {"status": false, "msg": "错误原因"}
           else {
@@ -840,16 +951,7 @@ export default {
           this.$message.error("添加失败，请联系管理员");
         });
     },
-    findAlldepartment() {
-      this.axios
-        .get("http://127.0.0.1:5000/department/find-all")
-        .then((response) => {
-          this.departmentData = response.data.data;
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-    },
+    // 添加部门
     addDepartment() {
       this.axios
         .post("http://127.0.0.1:5000/department/add-one", this.departmentFrom)
@@ -871,6 +973,7 @@ export default {
           this.$message.error("添加失败，请联系管理员");
         });
     },
+    // 添加职业
     addPosition() {
       this.axios
         .post("http://127.0.0.1:5000/position/add-one", this.positionFrom)
@@ -889,45 +992,12 @@ export default {
           this.$message.error("添加失败，请联系管理员");
         });
     },
-    queryEmployee() {
-      this.axios
-        .post("http://127.0.0.1:5000/employee/find-name", this.queryFrom)
-        .then((response) => {
-          if (response.data.code == 200) {
-            this.queryBack = response.data.data;
-          } else {
-            alert(response.data.msg);
-          }
-        });
-    },
-    findAllPosition() {
-      this.axios
-        .get("http://127.0.0.1:5000/position/find-all")
-        .then((response) => {
-          this.positionData = response.data.data;
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-    },
-    resetQuery() {
-      this.queryFrom = {
-        employee_name: null,
-        department_id: null,
-        position_id: null,
-      };
-    },
+    // 修改用户
     updateUser() {
-      this.employeeForm.id = this.user.id;
-      this.employeeForm.photo = null;
-      if (this.user.role_name == "管理员") {
-        this.employeeForm.role_id = 1;
-      } else {
-        this.employeeForm.role_id = 2;
-      }
-      console.log(this.employeeForm);
+      this.user.id = this.userid;
+      console.log(this.user);
       this.axios
-        .post("http://127.0.0.1:5000/employee/update-one", this.employeeForm)
+        .post("http://127.0.0.1:5000/employee/update-one", this.user)
         .then((response) => {
           console.log(response);
         })
@@ -935,6 +1005,27 @@ export default {
           console.log(e);
         });
     },
+    // 修改职位信息
+    updatePosition(row) {
+      this.positionFrom.id = row.id;
+      this.axios
+        .post("http://127.0.0.1:5000/position/update-one", this.positionFrom)
+        .then((response) => {
+          if (response.data.code == 200) {
+            this.findAllPosition();
+            this.$message.success("修改成功");
+            this.positionFrom = {};
+          } else {
+            this.$message.error(response.data.msg);
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+          this.$message.error("修改失败，请联系管理员");
+        });
+      row.opendialogPosition = false;
+    },
+    // 修改部门信息
     updateDepartment(row) {
       this.departmentFrom.id = row.id;
       this.axios
@@ -959,6 +1050,49 @@ export default {
         });
       row.isDialogVisible = false;
     },
+    // 修改员工
+    updateEmployee(row) {
+      this.employeeForm.id = row.id;
+      this.axios
+        .post("http://127.0.0.1:5000/employee/update-one", this.employeeForm)
+        .then((response) => {
+          if (response.data.code == 200) {
+            this.findAllEmployee();
+            this.$message.success("修改成功");
+            this.employeeForm = {};
+          } else {
+            this.$message.error(response.data.msg);
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+          this.$message.error("修改失败，请联系管理员");
+        });
+      row.isDialogVisible = false;
+    },
+    // 删除员工
+    deleteEmployee(row) {
+      this.axios
+        .get("http://127.0.0.1:5000/employee/delete-one?id=" + row.id)
+        .then((response) => {
+          console.log(response);
+          if (response.data.code == 200) {
+            this.findAllEmployee();
+            this.$message({
+              message: "删除成功",
+              type: "success",
+            });
+          } else {
+            this.$message.error(response.data.msg);
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+          this.$message.error("删除失败，请联系管理员");
+        });
+      row.isDialogVisible = false;
+    },
+    // 删除部门
     deleteDepartment(row) {
       this.axios
         .get("http://127.0.0.1:5000/department/delete-one?id=" + row.id)
@@ -980,56 +1114,7 @@ export default {
         });
       row.deleteDepartmentDialog = false;
     },
-    opendialogDepartment(row) {
-      console.log(row);
-      if (row.isDialogVisible === undefined) {
-        this.$set(row, "isDialogVisible", false);
-      }
-      this.departmentFrom.name = row.name;
-      row.isDialogVisible = true;
-    },
-    hideialogDepartment(row) {
-      row.isDialogVisible = false;
-    },
-    openDeleteDepartmentDialog(row) {
-      console.log(row);
-      if (row.deleteDepartmentDialog === undefined) {
-        this.$set(row, "deleteDepartmentDialog", false);
-      }
-      row.deleteDepartmentDialog = true;
-    },
-    hideDeleteDepartmentDialog(row) {
-      row.isDialogVisible = false;
-    },
-    opendialogPosition(row) {
-      if (row.opendialogPosition === undefined) {
-        this.$set(row, "opendialogPosition", false);
-      }
-      this.positionFrom.name = row.name;
-      row.opendialogPosition = true;
-    },
-    hideialogPosition(row) {
-      row.opendialogPosition = false;
-    },
-    updatePosition(row) {
-      this.positionFrom.id = row.id;
-      this.axios
-        .post("http://127.0.0.1:5000/position/update-one", this.positionFrom)
-        .then((response) => {
-          if (response.data.code == 200) {
-            this.findAllPosition();
-            this.$message.success("修改成功");
-            this.positionFrom = {};
-          } else {
-            this.$message.error(response.data.msg);
-          }
-        })
-        .catch((error) => {
-          console.log(error);
-          this.$message.error("修改失败，请联系管理员");
-        });
-      row.opendialogPosition = false;
-    },
+    // 删除职位信息
     deletePosition(row) {
       this.axios
         .get("http://127.0.0.1:5000/position/delete-one?id=" + row.id)
@@ -1048,12 +1133,59 @@ export default {
         });
       row.deletePositionDialog = false;
     },
+    // 打开编辑部门对话框
+    opendialogDepartment(row) {
+      console.log(row);
+      if (row.isDialogVisible === undefined) {
+        this.$set(row, "isDialogVisible", false);
+      }
+      this.departmentFrom.name = row.name;
+      row.isDialogVisible = true;
+    },
+    // 打开删除员工对话框
+    openDeleteEmployeeDialog(row) {
+      console.log(row);
+      if (row.DeleteEmployeeDialog === undefined) {
+        this.$set(row, "DeleteEmployeeDialog", false);
+      }
+      row.DeleteEmployeeDialog = true;
+    },
+    // 隐藏编辑部门对话框
+    hideialogDepartment(row) {
+      row.isDialogVisible = false;
+    },
+    // 打开删除部门对话框
+    openDeleteDepartmentDialog(row) {
+      console.log(row);
+      if (row.deleteDepartmentDialog === undefined) {
+        this.$set(row, "deleteDepartmentDialog", false);
+      }
+      row.deleteDepartmentDialog = true;
+    },
+    // 隐藏删除部门对话框
+    hideDeleteDepartmentDialog(row) {
+      row.isDialogVisible = false;
+    },
+    // 打开编辑职位对话框
+    opendialogPosition(row) {
+      if (row.opendialogPosition === undefined) {
+        this.$set(row, "opendialogPosition", false);
+      }
+      this.positionFrom.name = row.name;
+      row.opendialogPosition = true;
+    },
+    // 隐藏编辑职位对话框
+    hideialogPosition(row) {
+      row.opendialogPosition = false;
+    },
+    // 打开删除职位对话框
     openDeletePositionDialog(row) {
       if (row.deletePositionDialog === undefined) {
         this.$set(row, "deletePositionDialog", false);
       }
       row.deletePositionDialog = true;
     },
+    // 打开编辑员工对话框
     openEmployeeDialog(row) {
       console.log(row);
       if (row.isDialogVisible === undefined) {
@@ -1062,38 +1194,30 @@ export default {
       this.employeeForm = row;
       row.isDialogVisible = true;
     },
-    updateEmployee(row) {
-      this.employeeForm.id = row.id;
-      this.axios
-        .post("http://127.0.0.1:5000/employee/update-one", this.employeeForm)
-        .then((response) => {
-          if (response.data.code == 200) {
-            this.findAllEmployee();
-            this.$message.success("修改成功");
-            this.employeeForm = {};
-          } else {
-            this.$message.error(response.data.msg);
-          }
-        })
-        .catch((error) => {
-          console.log(error);
-          this.$message.error("修改失败，请联系管理员");
-        });
-      row.isDialogVisible = false;
-    },
+    // 显示图片
     handleSuccess(response, index) {
-      console.log(response);
-      console.log(index);
-      this.employeeForm.photo = response.filename;
+      if (index >= -1) {
+        this.employeeForm.photo = response.filename;
+      } else {
+        this.user.photo = response.filename;
+      }
       this.getImageUrl(response.filename, index);
     },
+    // 查询图片地址
     getImageUrl(filename, index) {
       this.axios
         .get(`http://127.0.0.1:5000/employee/get-image/${filename}`)
         .then((response) => {
-          console.log(response.config);
-          this.employeeData[index].photo = response.config.url;
-          console.log(this.employeeData);
+          if (index >= 0) {
+            this.employeeData[index].photo = response.config.url;
+            console.log(this.employeeData[index]);
+          } else if (index == -1) {
+            this.employeeForm.photo = response.config.url;
+            console.log(this.employeeForm);
+          } else {
+            this.user.photo = response.config.url;
+            console.log(this.user);
+          }
         })
         .catch((error) => {
           console.log(error);
@@ -1105,6 +1229,8 @@ export default {
     this.findAlldepartment();
     this.findAllPosition();
     this.user = this.$route.query.user;
+    this.userid = this.user.id;
+    console.log(this.user);
   },
 };
 </script>
@@ -1121,5 +1247,28 @@ export default {
 .el-dialog__header {
   font-weight: bold;
   font-size: 18px;
+}
+.avatar-uploader .el-upload {
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.avatar-uploader .el-upload:hover {
+  border-color: #409eff;
+}
+.avatar-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 178px;
+  height: 178px;
+  line-height: 178px;
+  text-align: center;
+}
+.avatar {
+  width: 178px;
+  height: 178px;
+  display: block;
 }
 </style>
